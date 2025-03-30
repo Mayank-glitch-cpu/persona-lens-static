@@ -201,97 +201,34 @@
     </main>
 
     <script>
-        // Change API URL to local development server
-        const API_URL = 'http://localhost:5000/api/persona-lens';
-        let currentSessionId = null;
+        // Mock data for testing purposes
+        const mockData = [
+            {
+                name: "Alex Developer",
+                username: "alexdev",
+                experience: "7.5 years (Senior)",
+                matchScore: "0.92",
+                skills: ["Python", "JavaScript", "Machine Learning"]
+            },
+            {
+                name: "Sam Coder",
+                username: "samcoder",
+                experience: "5.3 years (Mid-Senior)",
+                matchScore: "0.85",
+                skills: ["Java", "System Design", "Backend"]
+            },
+            {
+                name: "Taylor Engineer",
+                username: "tenginner",
+                experience: "4.2 years (Mid-level)",
+                matchScore: "0.81",
+                skills: ["C++", "DevOps", "Full Stack"]
+            }
+        ];
 
-        async function searchCandidates() {
-            const searchInput = document.getElementById('searchInput');
-            const loadingIndicator = document.getElementById('loadingIndicator');
+        function displayMockData() {
             const resultsContainer = document.getElementById('resultsContainer');
-
-            if (!searchInput.value.trim()) {
-                alert('Please enter a search query');
-                return;
-            }
-
-            loadingIndicator.classList.add('active');
-            resultsContainer.innerHTML = '';
-
-            try {
-                // First try a CORS test
-                try {
-                    const corsTest = await fetch(`${API_URL.replace('/query', '')}/cors-test`, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        mode: 'cors'
-                    });
-                    const corsResult = await corsTest.json();
-                    console.log('CORS test result:', corsResult);
-                } catch (corsError) {
-                    console.error('CORS test failed:', corsError);
-                    resultsContainer.innerHTML = '<p>Error: Unable to connect to the API server. CORS might be blocked.</p>';
-                    loadingIndicator.classList.remove('active');
-                    return;
-                }
-
-                // Proceed with the main request
-                const response = await fetch(`${API_URL}/query`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    mode: 'cors',
-                    body: JSON.stringify({
-                        query: searchInput.value,
-                        session_id: currentSessionId
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                currentSessionId = data.session_id;
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // Parse and display results
-                displayResults(data.rag_output);
-            } catch (error) {
-                console.error('Error details:', error);
-                resultsContainer.innerHTML = `
-                    <div style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 1rem; border-radius: 4px;">
-                        <h3>Error fetching results</h3>
-                        <p>Details: ${error.message}</p>
-                        <p>Please check the following:</p>
-                        <ul>
-                            <li>The API server is running and accessible</li>
-                            <li>Your internet connection is stable</li>
-                            <li>Try refreshing the page and trying again</li>
-                        </ul>
-                    </div>`;
-            } finally {
-                loadingIndicator.classList.remove('active');
-            }
-        }
-
-        function displayResults(ragOutput) {
-            const resultsContainer = document.getElementById('resultsContainer');
-            const candidates = parseRagOutput(ragOutput);
-
-            if (candidates.length === 0) {
-                resultsContainer.innerHTML = '<p>No candidates found matching your criteria.</p>';
-                return;
-            }
-
-            const resultsHTML = candidates.map(candidate => `
+            const resultsHTML = mockData.map(candidate => `
                 <div class="candidate-card">
                     <h3 class="candidate-name">${candidate.name}</h3>
                     <div class="candidate-details">
@@ -319,49 +256,8 @@
             resultsContainer.innerHTML = resultsHTML;
         }
 
-        function parseRagOutput(ragOutput) {
-            // Simple parser for the RAG output format
-            const candidates = [];
-            const sections = ragOutput.split(/\d+\.\s+\*\*/).filter(Boolean);
-
-            sections.forEach(section => {
-                const lines = section.trim().split('\n');
-                const name = lines[0].replace(/\*\*/g, '').trim();
-                
-                const candidate = {
-                    name,
-                    username: '',
-                    experience: '',
-                    matchScore: '',
-                    skills: []
-                };
-
-                lines.forEach(line => {
-                    if (line.includes('Username:')) {
-                        candidate.username = line.split('Username:')[1].trim();
-                    } else if (line.includes('Experience:')) {
-                        candidate.experience = line.split('Experience:')[1].trim();
-                    } else if (line.includes('Match Score:')) {
-                        candidate.matchScore = line.split('Match Score:')[1].trim();
-                    } else if (line.includes('Expertise:')) {
-                        candidate.skills = line.split('Expertise:')[1].trim().split(',').map(s => s.trim());
-                    }
-                });
-
-                if (candidate.name) {
-                    candidates.push(candidate);
-                }
-            });
-
-            return candidates;
-        }
-
-        // Add event listener for Enter key in search input
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchCandidates();
-            }
-        });
+        // Call the function to display mock data on page load
+        document.addEventListener('DOMContentLoaded', displayMockData);
     </script>
 </body>
 </html>
