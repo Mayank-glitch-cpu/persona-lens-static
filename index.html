@@ -201,7 +201,7 @@
     </main>
 
     <script>
-        const API_URL = 'https://persona-lens-api.onrender.com/api/persona-lens';  // Update this URL to your deployed API endpoint
+        const API_URL = 'https://persona-lens-api.onrender.com/api/persona-lens';
         let currentSessionId = null;
 
         async function searchCandidates() {
@@ -218,25 +218,64 @@
             resultsContainer.innerHTML = '';
 
             try {
+                // First try a CORS test
+                try {
+                    const corsTest = await fetch(`${API_URL.replace('/query', '')}/cors-test`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        mode: 'cors'
+                    });
+                    const corsResult = await corsTest.json();
+                    console.log('CORS test result:', corsResult);
+                } catch (corsError) {
+                    console.error('CORS test failed:', corsError);
+                    resultsContainer.innerHTML = '<p>Error: Unable to connect to the API server. CORS might be blocked.</p>';
+                    loadingIndicator.classList.remove('active');
+                    return;
+                }
+
+                // Proceed with the main request
                 const response = await fetch(`${API_URL}/query`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                     },
+                    mode: 'cors',
                     body: JSON.stringify({
                         query: searchInput.value,
                         session_id: currentSessionId
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
                 currentSessionId = data.session_id;
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
 
                 // Parse and display results
                 displayResults(data.rag_output);
             } catch (error) {
-                console.error('Error:', error);
-                resultsContainer.innerHTML = '<p>Error fetching results. Please try again.</p>';
+                console.error('Error details:', error);
+                resultsContainer.innerHTML = `
+                    <div style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 1rem; border-radius: 4px;">
+                        <h3>Error fetching results</h3>
+                        <p>Details: ${error.message}</p>
+                        <p>Please check the following:</p>
+                        <ul>
+                            <li>The API server is running and accessible</li>
+                            <li>Your internet connection is stable</li>
+                            <li>Try refreshing the page and trying again</li>
+                        </ul>
+                    </div>`;
             } finally {
                 loadingIndicator.classList.remove('active');
             }
